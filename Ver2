@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seoul Trip 2026 🌸</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vuedraggable@4.1.0/dist/vuedraggable.umd.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        body { font-family: 'Noto Sans JP', sans-serif; background-color: #FFF0F3; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .glass-morphism { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(10px); }
+        .content-card { margin-top: -40px; border-radius: 40px 40px 0 0; background: #FFF0F3; }
+        .tab-active { background-color: #FFB7C5; color: white; transform: translateY(-5px); }
+    </style>
+</head>
+<body class="max-w-md mx-auto min-h-screen relative shadow-2xl">
+
+<div id="app" class="pb-20">
+    <header class="relative h-[250px] bg-gradient-to-b from-[#FFC0CB] to-[#FFB7C5] flex items-center justify-center overflow-hidden">
+        <div class="absolute inset-0 opacity-30 pointer-events-none">
+            <div class="absolute top-10 left-10 w-20 h-20 bg-white rounded-full blur-3xl"></div>
+        </div>
+        <h1 class="text-4xl font-bold text-white tracking-widest drop-shadow-md">Seoul Trip</h1>
+        
+        <div class="absolute bottom-16 right-4 flex space-x-3">
+            <button v-for="tab in tabs" :key="tab.id" @click="currentTab = tab.id"
+                    :class="['p-3 rounded-2xl glass-morphism transition-all duration-300 shadow-sm', currentTab === tab.id ? 'tab-active' : 'text-pink-400']">
+                <i :data-lucide="tab.icon" class="w-6 h-6"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-card relative px-5 pt-8 min-h-[500px]">
+        
+        <div v-if="currentTab === 'itinerary'">
+            <div class="flex items-center justify-between mb-6 p-4 rounded-3xl bg-white shadow-sm border border-pink-100">
+                <div class="flex items-center space-x-3">
+                    <i data-lucide="sun-cloud" class="w-8 h-8 text-yellow-400"></i>
+                    <div>
+                        <p class="text-xs text-gray-400">Seoul, South Korea</p>
+                        <p class="font-bold text-gray-700">12°C <span class="text-xs font-normal text-gray-400">體感 10°C</span></p>
+                    </div>
+                </div>
+                <div class="text-pink-400 text-xs font-bold bg-pink-50 px-2 py-1 rounded-full italic">Clear Sky</div>
+            </div>
+
+            <div class="flex overflow-x-auto space-x-4 mb-8 hide-scrollbar">
+                <button v-for="d in dateRange" :key="d.full" @click="selectedDate = d.full"
+                    :class="['flex-shrink-0 w-16 h-20 rounded-2xl flex flex-col items-center justify-center transition-all', 
+                    selectedDate === d.full ? 'bg-pink-400 text-white shadow-lg' : 'bg-white text-pink-300']">
+                    <span class="text-[10px] font-bold uppercase">{{ d.weekday }}</span>
+                    <span class="text-xl font-bold">{{ d.day }}</span>
+                </button>
+            </div>
+
+            <draggable v-model="itinerary[selectedDate]" item-key="id" handle=".drag-handle">
+                <template #item="{element, index}">
+                    <div>
+                        <div v-if="index > 0" class="flex flex-col items-center py-2 opacity-50">
+                            <div class="w-0.5 h-6 bg-pink-200"></div>
+                            <div class="flex items-center space-x-1 text-[10px] text-pink-500 py-1 font-bold">
+                                <i data-lucide="bus" class="w-3 h-3"></i>
+                                <span>{{ element.transitTime || '25' }} mins</span>
+                            </div>
+                            <div class="w-0.5 h-6 bg-pink-200"></div>
+                        </div>
+
+                        <div v-if="element.category === '航班'" class="bg-gradient-to-r from-pink-400 to-pink-300 rounded-3xl p-5 text-white shadow-lg mb-2">
+                            <div class="flex justify-between items-center mb-3 text-xs opacity-80">
+                                <span>{{ element.flightNo }}</span>
+                                <i data-lucide="plane"></i>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <div class="text-center"><p class="text-2xl font-bold">KHH</p><p class="text-[10px]">06:55</p></div>
+                                <div class="flex-1 border-t border-dashed border-white/50 mx-4"></div>
+                                <div class="text-center"><p class="text-2xl font-bold">ICN</p><p class="text-[10px]">10:45</p></div>
+                            </div>
+                        </div>
+
+                        <div v-else class="bg-white rounded-3xl p-4 shadow-sm border border-pink-50 relative group">
+                            <div class="flex justify-between">
+                                <div class="flex-1" @click="goNav(element.name)">
+                                    <div class="flex items-center space-x-2">
+                                        <span class="text-[10px] bg-pink-100 text-pink-500 px-2 py-0.5 rounded-full font-bold">{{ element.category }}</span>
+                                        <span class="text-xs text-gray-400">{{ element.time }}</span>
+                                    </div>
+                                    <h3 class="font-bold text-gray-800 mt-1">{{ element.name }}</h3>
+                                    <p class="text-[11px] text-gray-400 mt-1">{{ element.note }}</p>
+                                </div>
+                                <div class="drag-handle cursor-grab pl-3 text-gray-200 group-hover:text-pink-200 transition-colors">
+                                    <i data-lucide="grip-vertical"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+            </draggable>
+        </div>
+
+        <div v-if="currentTab === 'info'" class="space-y-6 pb-10">
+            <div class="bg-white rounded-3xl p-6 shadow-sm border border-pink-50">
+                <h3 class="font-bold text-gray-700 flex items-center mb-4 text-sm">
+                    <i data-lucide="refresh-ccw" class="w-4 h-4 mr-2 text-pink-400"></i>匯率即時換算 (KRW ➔ TWD)
+                </h3>
+                <div class="space-y-3">
+                    <div class="flex items-center bg-gray-50 rounded-2xl px-4 py-2">
+                        <span class="text-xs font-bold text-gray-400 w-12">KRW</span>
+                        <input type="number" v-model="currency.krw" class="bg-transparent flex-1 outline-none font-bold text-gray-700" placeholder="0">
+                    </div>
+                    <div class="flex items-center bg-pink-50 rounded-2xl px-4 py-2">
+                        <span class="text-xs font-bold text-pink-400 w-12">TWD</span>
+                        <div class="flex-1 font-bold text-pink-600">{{ (currency.krw * 0.024).toFixed(2) }}</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-3xl p-5 shadow-sm border border-pink-50">
+                <div class="flex justify-between items-start mb-3">
+                    <h3 class="font-bold text-gray-800">Dongdaemun HOTEL 27</h3>
+                    <button @click="goNav('Dongdaemun HOTEL 27')" class="text-pink-400"><i data-lucide="navigation" class="w-5 h-5"></i></button>
+                </div>
+                <div class="text-xs text-gray-500 space-y-1">
+                    <p class="flex items-center"><i data-lucide="map-pin" class="w-3 h-3 mr-1"></i> 서울특별시 성동구 자동차시장1길 27</p>
+                    <p class="flex items-center"><i data-lucide="phone" class="w-3 h-3 mr-1"></i> +82 1096423111</p>
+                    <p class="flex items-center"><i data-lucide="tag" class="w-3 h-3 mr-1"></i> Booking ID: 1979885884</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <button class="fixed bottom-6 right-6 w-16 h-16 bg-pink-400 text-white rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50">
+        <i data-lucide="plus" class="w-8 h-8"></i>
+    </button>
+</div>
+
+<script>
+    const { createApp, ref, onMounted, nextTick } = Vue;
+
+    createApp({
+        setup() {
+            const currentTab = ref('itinerary');
+            const selectedDate = ref('4/4');
+            const currency = ref({ krw: 1000 });
+
+            const tabs = [
+                { id: 'itinerary', icon: 'map-pin' },
+                { id: 'info', icon: 'info' },
+                { id: 'shopping', icon: 'shopping-basket' },
+                { id: 'expense', icon: 'banknote' }
+            ];
+
+            const dateRange = [
+                { weekday: 'Fri', day: '4', full: '4/4' },
+                { weekday: 'Sat', day: '5', full: '4/5' },
+                { weekday: 'Sun', day: '6', full: '4/6' },
+                { weekday: 'Mon', day: '7', full: '4/7' },
+                { weekday: 'Tue', day: '8', full: '4/8' },
+                { weekday: 'Wed', day: '9', full: '4/9' },
+                { weekday: 'Thu', day: '10', full: '4/10' }
+            ];
+
+            const itinerary = ref({
+                '4/4': [
+                    { id: 1, category: '航班', flightNo: 'BR146', name: '高雄國際機場 -> 仁川國際機場', time: '06:55', transitTime: '0' },
+                    { id: 2, category: '住宿', name: 'Hotel 27 Dongdaemun Check-in', time: '15:00', note: '放行李', transitTime: '60' },
+                    { id: 3, category: '美食', name: '明洞王妃家燒肉', time: '18:00', note: '需排隊', transitTime: '20' }
+                ],
+                '4/5': []
+            });
+
+            const goNav = (location) => {
+                const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(location)}`;
+                window.open(url, '_blank');
+            };
+
+            onMounted(() => {
+                lucide.createIcons();
+            });
+
+            return { currentTab, tabs, dateRange, selectedDate, itinerary, currency, goNav };
+        }
+    })
+    .component('draggable', vuedraggable)
+    .mount('#app');
+</script>
+</body>
+</html>
